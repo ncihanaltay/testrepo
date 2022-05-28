@@ -415,29 +415,29 @@ print("DecisionTrees's Accuracy: ", metrics.accuracy_score(y_test, predTree))
 # # Support Vector Machine
 # 
 
-# In[84]:
+# In[113]:
 
 
 from sklearn import svm
-clf = svm.SVC(kernel='rbf')
-clf.fit(X_train, y_train) 
+svm_model = svm.SVC(kernel='rbf')
+svm_model.fit(X_train, y_train) 
 
 
-# In[85]:
+# In[114]:
 
 
-yhat = clf.predict(X_test)
+yhat = svm_model.predict(X_test)
 yhat [0:5]
 
 
-# In[86]:
+# In[115]:
 
 
 from sklearn.metrics import classification_report, confusion_matrix
 import itertools
 
 
-# In[87]:
+# In[116]:
 
 
 def plot_confusion_matrix(cm, classes,
@@ -475,7 +475,7 @@ def plot_confusion_matrix(cm, classes,
     plt.xlabel('Predicted label')
 
 
-# In[93]:
+# In[117]:
 
 
 # Compute confusion matrix
@@ -489,14 +489,14 @@ plt.figure()
 plot_confusion_matrix(cnf_matrix, classes=['COLLECTION','PAIDOFF'],normalize= False,  title='Confusion matrix')
 
 
-# In[89]:
+# In[118]:
 
 
 from sklearn.metrics import f1_score
 f1_score(y_test, yhat, average='weighted') 
 
 
-# In[91]:
+# In[119]:
 
 
 from sklearn.metrics import jaccard_score
@@ -560,18 +560,19 @@ print ("LogLoss: : %.2f" % log_loss(y_test, yhat_prob2))
 # # Model Evaluation using Test set
 # 
 
-# In[101]:
+# In[107]:
 
 
 from sklearn.metrics import jaccard_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import log_loss
+from sklearn.metrics import accuracy_score
 
 
 # First, download and load the test set:
 # 
 
-# In[102]:
+# In[108]:
 
 
 get_ipython().system('wget -O loan_test.csv https://s3-api.us-geo.objectstorage.softlayer.net/cf-courses-data/CognitiveClass/ML0101ENv3/labs/loan_test.csv')
@@ -580,24 +581,102 @@ get_ipython().system('wget -O loan_test.csv https://s3-api.us-geo.objectstorage.
 # ### Load Test set for evaluation
 # 
 
-# In[103]:
+# In[109]:
 
 
 test_df = pd.read_csv('loan_test.csv')
 test_df.head()
 
 
+# In[110]:
+
+
+test_df['due_date'] = pd.to_datetime(test_df['due_date'])
+test_df['effective_date'] = pd.to_datetime(test_df['effective_date'])
+test_df['dayofweek'] = test_df['effective_date'].dt.dayofweek
+
+test_df['weekend'] = test_df['dayofweek'].apply(lambda x: 1 if (x>3)  else 0)
+test_df['Gender'].replace(to_replace=['male','female'], value=[0,1],inplace=True)
+
+Feature1 = test_df[['Principal','terms','age','Gender','weekend']]
+Feature1 = pd.concat([Feature1,pd.get_dummies(test_df['education'])], axis=1)
+Feature1.drop(['Master or Above'], axis = 1,inplace=True)
+
+
+x_loan_test = Feature1
+x_loan_test = preprocessing.StandardScaler().fit(x_loan_test).transform(x_loan_test)
+
+x_loan_test[0:5]
+
+
+# In[111]:
+
+
+y_loan_test = test_df['loan_status'].values
+y_loan_test[0:5]
+
+
+# In[120]:
+
+
+knn_pred = neigh.predict(x_loan_test)
+j1 = accuracy_score(y_loan_test, knn_pred)
+
+dt_pred = loanTree.predict(x_loan_test)
+j2 = accuracy_score(y_loan_test, dt_pred)
+
+svm_pred = svm_model.predict(x_loan_test)
+j3 = accuracy_score(y_loan_test, svm_pred)
+
+lr_pred = LR.predict(x_loan_test)
+j4 = accuracy_score(y_loan_test, lr_pred)
+
+jaccard = [j1, j2, j3, j4]
+jaccard
+
+
+# In[121]:
+
+
+knn_pred = neigh.predict(x_loan_test)
+f1 = f1_score(y_loan_test, knn_pred, average='weighted')
+
+dt_pred = loanTree.predict(x_loan_test)
+f2 = f1_score(y_loan_test, dt_pred, average='weighted')
+
+
+svm_pred = svm_model.predict(x_loan_test)
+f3 = f1_score(y_loan_test, svm_pred, average='weighted')
+
+lr_pred = LR.predict(x_loan_test)
+f4 = f1_score(y_loan_test, lr_pred, average='weighted')
+
+f1s = [f1, f2, f3, f4]
+f1s
+
+
+# In[122]:
+
+
+lr_pred = LR.predict_proba(x_loan_test)
+aux = log_loss(y_loan_test, lr_pred)
+
+log_loss = ['NA','NA','NA', aux]
+log_loss
+index   = ["KNN", "Decision Tree", "SVM", "Logistic Regression"]
+colunms = ["Jaccard", "F1-score", "LogLoss"]
+
+data = [jaccard, f1s, log_loss]
+data = np.array(data).T
+
+df = pd.DataFrame(data, index=index, columns=colunms)
+df
+
+
 # In[ ]:
 
 
 
-
-
-# In[ ]:
-
-
-yhat = clf.predict(X_test)
-yhat [0:5]
 
 
 # In[ ]:
